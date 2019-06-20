@@ -1,0 +1,24 @@
+version: '2.1'
+
+networks:
+    archive:
+
+services:
+    postgres:
+        image: pensnarik/postgres-pgmigrate
+        environment:
+            PG_LOG_MIN_MESSAGES: 'info'
+            PG_LOG_MIN_DURATION_STATEMENT: '0'
+            POSTGRES_DB: archive
+            POSTGRES_USER: postgres
+        networks:
+            - archive
+        ports:
+            - '20000:5432'
+        volumes:
+            - ./db:/db
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres archive"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
