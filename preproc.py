@@ -9,6 +9,8 @@ import subprocess
 from PIL import Image, ExifTags
 from PIL.JpegImagePlugin import JpegImageFile
 
+EXCLUDE_EXIF = ['MakerNote', 'UserComment']
+
 def get_file_instance(filename):
     if filename.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff']:
         return FileImageMeta(filename)
@@ -74,7 +76,7 @@ class FileImageMeta(FileMeta):
             exif = {
                 ExifTags.TAGS[k]: self.exit2text(v)
                 for k, v in image._getexif().items()
-                if k in ExifTags.TAGS
+                if k in ExifTags.TAGS and ExifTags.TAGS[k] not in EXCLUDE_EXIF
             }
         else:
             exif = {}
