@@ -5,6 +5,7 @@ import sys
 import hashlib
 import json
 import subprocess
+import math
 
 from PIL import Image, ExifTags
 from PIL.JpegImagePlugin import JpegImageFile
@@ -12,10 +13,13 @@ from PIL.JpegImagePlugin import JpegImageFile
 EXCLUDE_EXIF = ['MakerNote', 'UserComment']
 
 def get_file_instance(filename):
-    if filename.lower().split('.')[-1] in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff']:
+    extension = filename.lower().split('.')[-1]
+    if extension in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff']:
         return FileImageMeta(filename)
-    elif filename.lower().split('.')[-1] in ['tgz', 'zip', 'rar', 'gz', 'xz']:
+    elif extension in ['tgz', 'zip', 'rar', 'gz', 'xz']:
         return FileMetaArchive(filename)
+    elif extension in ['mp4', 'wmv', 'flv', 'avi', 'webm']:
+        return FileVideoMeta(filename)
     else:
         return FileMeta(filename)
 
@@ -53,6 +57,41 @@ class FileImageMeta(FileMeta):
         meta[self.hash].update(self.get_image_info())
         return meta
 
+    def get_pcp_hash(self):
+        command = 'convert -depth 8 -strip -type Grayscale -geometry 8x8! "%s" "%s/%s.png"' % \
+                  (self.filename, 'pcp_hash', self.hash)
+
+        try:
+            subprocess.run(command, shell=True, check=True)
+        except subprocess.CalledProcessError:
+            return '0000000000000000'
+
+        im = Image.open('pcp_hash/%s.png' % self.hash)
+        width, height = im.size
+
+        if width != height:
+            raise Exception('Width != height')
+
+        sum = 0
+
+        for y in range(0, width):
+            for x in range(0, height):
+                pixel = im.getpixel((x, y))
+                sum += pixel
+
+        average = sum / (width*height)
+
+        hash = list()
+
+        for y in range(0, width):
+            bits = 0
+            for x in range(0, height):
+                bit = int(im.getpixel((x, y)) > average)
+                bits += bit * math.pow(2, 7 - x)
+            hash.append(int(bits))
+        hash_as_str = ''.join(['%.2x' % i for i in hash])
+        return hash_as_str
+
     def exit2text(self, value):
         """ Helper function """
         if isinstance(value, str):
@@ -86,6 +125,7 @@ class FileImageMeta(FileMeta):
         meta['height'] = image.height
         meta['format'] = image.format
         meta['exif'] = exif
+        meta['pcp_hash'] = self.get_pcp_hash()
 
         return meta
 
@@ -140,6 +180,11 @@ class FileMetaArchive(FileMeta):
         # Clean up
         os.system('rm -rf %s' % self.hash)
         return meta
+
+class FileVideoMeta(FileMeta):
+    def __init__(self, filename):
+        super(FileMetaArchive, self).__init__(filename)
+        self.filetype = 'video'
 
 class App():
 

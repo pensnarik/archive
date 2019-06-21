@@ -13,7 +13,7 @@ def index():
 
 def add_files_recursively(data, parent):
     query = "select app.file_add(%(md5)s, %(size)s, %(filetype)s, %(mtime)s, %(ctime)s, %(filename)s, %(parent)s)"
-    query_image = "select app.image_add(%(file_id)s, %(width)s, %(height)s, %(exif)s)"
+    query_image = "select app.image_add(%(file_id)s, %(width)s, %(height)s, %(pcp_hash)s, %(exif)s)"
     id = None
 
     for hash in data.keys():
@@ -31,6 +31,7 @@ def add_files_recursively(data, parent):
         if data[hash]['filetype'] == 'image':
             sql.execute(query_image,
                         {'file_id': id, 'width': data[hash]['width'], 'height': data[hash]['height'],
+                         'pcp_hash': data[hash]['pcp_hash'],
                          'exif': json.dumps(data[hash]['exif'], ensure_ascii=False)})
 
         if 'included_files' in data[hash]:
