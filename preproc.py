@@ -89,7 +89,11 @@ class FileImageMeta(FileMeta):
                 bit = int(im.getpixel((x, y)) > average)
                 bits += bit * math.pow(2, 7 - x)
             hash.append(int(bits))
+
         hash_as_str = ''.join(['%.2x' % i for i in hash])
+
+        os.system('rm pcp_hash/%s.png' % self.hash)
+
         return hash_as_str
 
     def exit2text(self, value):
