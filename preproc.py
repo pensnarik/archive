@@ -187,7 +187,7 @@ class FileMetaArchive(FileMeta):
 
 class FileVideoMeta(FileMeta):
     def __init__(self, filename):
-        super(FileMetaArchive, self).__init__(filename)
+        super(FileVideoMeta, self).__init__(filename)
         self.filetype = 'video'
 
 class App():
