@@ -1,6 +1,7 @@
+import os
 import subprocess
 
-from archive.file_meta import FileMeta
+from archive.file_meta import FileMeta, get_file_instance
 
 class FileArchiveMeta(FileMeta):
 
@@ -31,8 +32,8 @@ class FileArchiveMeta(FileMeta):
     def get_meta(self):
         meta = super(FileArchiveMeta, self).get_meta()
         # We need to unpack the archive and process all its files recursively
-        os.system('rm -rf %s' % self.hash)
-        os.mkdir('./%s' % self.hash)
+        os.system('rm -rf ./tmp-unarchive/%s' % self.hash)
+        os.mkdir('./tmp-unarchive/%s' % self.hash)
 
         try:
             self.unarchive()
@@ -43,7 +44,7 @@ class FileArchiveMeta(FileMeta):
 
         meta[self.hash]['included_files'] = {}
 
-        for root, dir, files in os.walk('./%s' % self.hash):
+        for root, dir, files in os.walk('./tmp-unarchive/%s' % self.hash):
             for file in files:
                 filename = os.path.join(root, file)
                 # We don't process symlinks

@@ -5,7 +5,7 @@ import sys
 import hashlib
 import json
 
-from archive import get_file_instance
+from archive.file_meta import get_file_instance
 
 class App():
 
@@ -13,7 +13,6 @@ class App():
         filename = sys.argv[1]
 
         instance = get_file_instance(filename)
-
         print(json.dumps(instance.get_meta(), ensure_ascii=False))
 
 if __name__ == '__main__':

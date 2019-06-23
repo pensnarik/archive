@@ -7,6 +7,7 @@ from PIL.ExifTags import TAGS, GPSTAGS
 from PIL.JpegImagePlugin import JpegImageFile
 
 from archive.file_meta import FileMeta
+from archive.gps_tools import get_lat_lon, get_googlemaps_link
 
 EXCLUDE_EXIF = ['MakerNote', 'UserComment']
 
@@ -89,7 +90,13 @@ class FileImageMeta(FileMeta):
                     # print(value)
                     for t in value:
                         sub_decoded = GPSTAGS.get(t, t)
-                        gps_data[sub_decoded] = value[t]
+                        if isinstance(value[t], bytes):
+                            gps_data[sub_decoded] = str(value[t])
+                        else:
+                            if isinstance(value[t], str):
+                                gps_data[sub_decoded] = value[t].replace('\u0000', '')
+                            else:
+                                gps_data[sub_decoded] = value[t]
                     exif[decoded] = gps_data
                 elif decoded in EXCLUDE_EXIF:
                     continue
@@ -104,5 +111,9 @@ class FileImageMeta(FileMeta):
         meta['format'] = image.format
         meta['exif'] = exif
         meta['pcp_hash'] = self.get_pcp_hash()
+
+        if 'GPSInfo' in exif and get_lat_lon(exif) != (None, None):
+            meta['latlon'] = get_lat_lon(exif)
+            meta['googlemaps'] = get_googlemaps_link(meta['latlon'])
 
         return meta

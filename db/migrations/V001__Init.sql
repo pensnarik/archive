@@ -51,7 +51,8 @@ create table archive.image
     id                  bigint primary key references archive.file(id),
     width               integer,
     height              integer,
-    pcp_hash            char(16)
+    pcp_hash            char(16),
+    coords              point
 );
 
 create sequence archive.exif_id_seq start with 10000000;
@@ -161,6 +162,7 @@ function app.image_add
     awidth integer,
     aheight integer,
     apcp_hash char(16),
+    acoords point,
     aexif json
 ) returns bigint as $$
 declare
@@ -170,16 +172,16 @@ begin
         return vid;
     end if;
 
-    insert into archive.image (id, width, height, pcp_hash)
-    values (afile_id, awidth, aheight, apcp_hash)
+    insert into archive.image (id, width, height, pcp_hash, coords)
+    values (afile_id, awidth, aheight, apcp_hash, acoords)
     returning id into vid;
 
     insert into archive.exif (file_id, tag, value)
-    select afile_id, key, value 
+    select afile_id, key, value
       from json_each(aexif);
 
     return vid;
 end;
 $$ language plpgsql security definer;
 
-alter function app.image_add(bigint, integer, integer, char(16), json) owner to archive;
+alter function app.image_add(bigint, integer, integer, char(16), point, json) owner to archive;
