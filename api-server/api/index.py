@@ -3,6 +3,7 @@ from flask import Response, request, jsonify
 from datetime import datetime
 
 from api import app, sql
+from api.auth import api_auth_required
 
 def get_timestamp(ts):
     return datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
@@ -44,6 +45,7 @@ def add_files_recursively(data, parent):
     return id
 
 @app.route('/api/add', methods=['POST'])
+@api_auth_required
 def file_add():
     content = request.json
     id = add_files_recursively(content, None)

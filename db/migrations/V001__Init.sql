@@ -67,6 +67,21 @@ create table archive.exif
 
 create unique index on archive.exif using btree (file_id, tag);
 
+create sequence archive.users_id_seq start with 100000;
+
+create table archive.users
+(
+    id                  integer primary key default nextval('archive.users_id_seq'),
+    dt_created          timestamptz not null default current_timestamp,
+    email               text not null,
+    token               text not null
+);
+
+create unique index on archive.users using btree (email);
+create unique index on archive.users using btree (token);
+
+insert into archive.users (email, token) values ('dev@dev', md5('dev'));
+
 reset role;
 
 create schema app;
@@ -185,3 +200,12 @@ end;
 $$ language plpgsql security definer;
 
 alter function app.image_add(bigint, integer, integer, char(16), point, json) owner to archive;
+
+create function app.check_token
+(
+    atoken text
+) returns boolean as $$
+    select exists (select * from archive.users where token = atoken);
+$$ language sql security definer immutable;
+
+alter function app.check_token(text) owner to archive;
