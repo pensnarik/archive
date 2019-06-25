@@ -12,9 +12,13 @@ class FileArchiveMeta(FileMeta):
     def unarchive(self):
         extension = self.filename.lower().split('.')[-1]
 
-        if extension in ('tgz', 'gz'):
+        if extension == 'tgz':
             subprocess.run('tar -zxf "%s" --directory ./tmp-unarchive/%s/' % (self.filename, self.hash),
                            shell=True, check=True)
+        elif extension == 'gz':
+            subprocess.run('gunzip -c "%s" > ./tmp-unarchive/%s/%s' % \
+                            (self.filename, self.hash, os.path.basename('.'.join(self.filename.split('.')[:-1]))),
+                            shell=True, check=True)
         elif extension == 'xz':
             subprocess.run('tar -Jxf "%s" --directory ./tmp-unarchive/%s/' % (self.filename, self.hash),
                            shell=True, check=True)
