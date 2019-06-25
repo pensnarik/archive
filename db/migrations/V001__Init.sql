@@ -6,6 +6,7 @@ set role archive;
 set search_path to archive, public;
 
 create type archive.t_file_type as enum('archive', 'image', 'text', 'audio', 'video');
+create type archive.t_image_format as enum('jpeg', 'png', 'tiff', 'gif', 'bmp');
 
 create sequence archive.file_id_seq start with 10000000;
 
@@ -52,8 +53,14 @@ create table archive.image
     width               integer,
     height              integer,
     pcp_hash            char(16),
-    coords              point
+    coords              point,
+    exif_datetime       timestamp,
+    format              archive.t_image_format not null,
+    mode                varchar(255) not null
 );
+
+comment on table archive.image is 'Images and attributes related to them';
+comment on column archive.image.exif_datetime is 'Timestamp from EXIF, no need to store TZ info here';
 
 create sequence archive.exif_id_seq start with 10000000;
 
@@ -178,6 +185,9 @@ function app.image_add
     aheight integer,
     apcp_hash char(16),
     acoords point,
+    aexif_datetime timestamp,
+    aformat archive.t_image_format,
+    amode varchar,
     aexif json
 ) returns bigint as $$
 declare
@@ -187,8 +197,10 @@ begin
         return vid;
     end if;
 
-    insert into archive.image (id, width, height, pcp_hash, coords)
-    values (afile_id, awidth, aheight, apcp_hash, acoords)
+    insert into archive.image (id, width, height, pcp_hash, coords, exif_datetime, format,
+      mode)
+    values (afile_id, awidth, aheight, apcp_hash, acoords, aexif_datetime, aformat,
+      amode)
     returning id into vid;
 
     insert into archive.exif (file_id, tag, value)
@@ -199,7 +211,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
-alter function app.image_add(bigint, integer, integer, char(16), point, json) owner to archive;
+alter function app.image_add(bigint, integer, integer, char(16), point, timestamp, archive.t_image_format, varchar, json) owner to archive;
 
 create function app.check_token
 (
@@ -209,3 +221,113 @@ create function app.check_token
 $$ language sql security definer immutable;
 
 alter function app.check_token(text) owner to archive;
+
+create or replace
+function app.file_exists(atoken char(32)) returns boolean as $$
+    select exists (select * from archive.file where md5 = atoken);
+$$ language sql security definer immutable;
+
+alter function app.file_exists(char(32)) owner to archive;
+
+create or replace
+function app.image_list
+(
+    afilter text,
+    avalue text
+) returns table
+(
+    file_name text,
+    file_type text,
+    ctime timestamptz,
+    mtime timestamptz,
+    size bigint,
+    hint text
+) as $$
+begin
+    if afilter = '/' then
+        return query
+        select to_char(date_trunc('year', i.exif_datetime), 'yyyy') as file_name,
+               'd' as file_type,
+               max(f.ctime) as ctime,
+               max(f.mtime) as mtime,
+               sum(f.size)::bigint as size,
+               count(*)::text as hint
+          from archive.image i
+          join archive.file f on f.id = i.id
+          where i.exif_datetime is not null
+          group by 1, 2
+          order by 1;
+    elsif afilter = 'year' then
+        return query
+        select to_char(date_trunc('month', i.exif_datetime), 'yyyy-mm') as file_name,
+               'd' as file_type,
+               max(f.ctime) as ctime,
+               max(f.mtime) as mtime,
+               sum(f.size)::bigint as size,
+               count(*)::text as hint
+          from archive.image i
+          join archive.file f on f.id = i.id
+          where to_char(i.exif_datetime, 'yyyy') = avalue
+          group by 1, 2
+          order by 1;
+    elsif afilter = 'month' then
+        return query
+        select to_char(date_trunc('day', i.exif_datetime), 'yyyy-mm-dd') as file_name,
+               'd' as file_type,
+               max(f.ctime) as ctime,
+               max(f.mtime) as mtime,
+               sum(f.size)::bigint as size,
+               count(*)::text as hint
+          from archive.image i
+          join archive.file f on f.id = i.id
+          where to_char(i.exif_datetime, 'yyyy-mm') = avalue
+          group by 1, 2
+          order by 1;
+    elsif afilter = 'day' then
+        return query
+        select format('%s.%s', f.md5, i.format) as file_name,
+               'f'::text as file_type,
+               f.ctime as ctime,
+               f.mtime as mtime,
+               f.size as size,
+               ''::text as hint
+          from archive.image i
+          join archive.file f on f.id = i.id
+          where to_char(i.exif_datetime, 'yyyy-mm-dd') = avalue
+          order by 1;
+    end if;
+end;
+$$ language plpgsql security definer;
+
+alter function app.image_list(text, text) owner to archive;
+
+create or replace
+function app.image_local_filename
+(
+    ahash text
+) returns text as $$
+    select filename
+      from archive.file f
+      join archive.original_filename ori on ori.file_id = f.id
+     where f.md5 = ahash
+     order by ori.filename like './tmp%'
+     limit 1;
+$$ language sql security definer immutable;
+
+alter function app.image_local_filename(text) owner to archive;
+
+create or replace
+function app.image_getattr(ahash text) returns table
+(
+    size bigint,
+    ctime bigint,
+    mtime bigint
+) as $$
+    select f.size,
+           extract(epoch from f.ctime)::bigint as ctime,
+           extract(epoch from f.mtime)::bigint as mtime
+      from archive.file f
+     where f.md5 = ahash;
+$$ language sql security definer immutable;
+
+alter function app.image_getattr(text) owner to archive;

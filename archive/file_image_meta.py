@@ -1,4 +1,5 @@
 import os
+import re
 import math
 import subprocess
 
@@ -13,7 +14,7 @@ EXCLUDE_EXIF = ['MakerNote', 'UserComment']
 
 class FileImageMeta(FileMeta):
 
-    def __init__(self, filename):
+    def __init__(self, filename, precompiled_hash=None):
         super(FileImageMeta, self).__init__(filename)
         self.filetype = 'image'
 
@@ -39,8 +40,8 @@ class FileImageMeta(FileMeta):
 
         sum = 0
 
-        for y in range(0, width):
-            for x in range(0, height):
+        for y in range(0, height):
+            for x in range(0, width):
                 pixel = im.getpixel((x, y))
                 sum += pixel
 
@@ -73,6 +74,18 @@ class FileImageMeta(FileMeta):
             result = str(value)
 
         return result.replace('\u0000', '')
+
+    def exif_datetime(self, exif):
+        if 'DateTime' in exif:
+            value = exif['DateTime']
+        else:
+            return None
+
+        if re.match('^\d{4}:\d{2}:\d{2} \d{2}:\d{2}:\d{2}', value):
+            return '-'.join(value.split(' ')[0].split(':')) + ' ' + value.split(' ')[1]
+        else:
+            return None
+            # raise Exception('Invalid date time format in EXIF: "%s"' % value)
 
     def get_image_info(self):
         try:
@@ -108,12 +121,16 @@ class FileImageMeta(FileMeta):
         meta = {}
         meta['width'] = image.width
         meta['height'] = image.height
-        meta['format'] = image.format
+        meta['format'] = image.format.lower()
+        meta['mode'] = image.mode
         meta['exif'] = exif
         meta['pcp_hash'] = self.get_pcp_hash()
 
         if 'GPSInfo' in exif and get_lat_lon(exif) != (None, None):
             meta['latlon'] = get_lat_lon(exif)
             meta['googlemaps'] = get_googlemaps_link(meta['latlon'])
+
+        if self.exif_datetime(exif) is not None:
+            meta['exif_datetime'] = self.exif_datetime(exif)
 
         return meta

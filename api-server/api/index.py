@@ -14,7 +14,8 @@ def index():
 
 def add_files_recursively(data, parent):
     query = "select app.file_add(%(md5)s, %(size)s, %(filetype)s, %(mtime)s, %(ctime)s, %(filename)s, %(parent)s)"
-    query_image = "select app.image_add(%(file_id)s, %(width)s, %(height)s, %(pcp_hash)s, %(coords)s, %(exif)s)"
+    query_image = "select app.image_add(%(file_id)s, %(width)s, %(height)s, %(pcp_hash)s, %(coords)s, " \
+                  "%(exif_datetime)s, %(format)s, %(mode)s, %(exif)s)"
     id = None
 
     for hash in data.keys():
@@ -37,6 +38,8 @@ def add_files_recursively(data, parent):
             sql.execute(query_image,
                         {'file_id': id, 'width': data[hash]['width'], 'height': data[hash]['height'],
                          'pcp_hash': data[hash]['pcp_hash'], 'coords': coords,
+                         'exif_datetime': data[hash].get('exif_datetime'),
+                         'format': data[hash]['format'], 'mode': data[hash]['mode'],
                          'exif': json.dumps(data[hash]['exif'], ensure_ascii=False)})
 
         if 'included_files' in data[hash]:
@@ -50,3 +53,28 @@ def file_add():
     content = request.json
     id = add_files_recursively(content, None)
     return jsonify({'status': 'ok', 'id': id})
+
+@app.route('/api/check/<string:hash>', methods=['GET'])
+@api_auth_required
+def file_check(hash):
+    result = sql.get_value('select app.file_exists(%s)', [hash])
+    return jsonify({'status': 'ok', 'result': result})
+
+@app.route('/api/image/list', methods=['POST'])
+@api_auth_required
+def image_list():
+    filters = request.json
+    result = sql.get_rows('select * from app.image_list(%s, %s)', [filters['filter'], filters['value']])
+    return jsonify({'status': 'ok', 'files': result})
+
+@app.route('/api/image/local_filename/<string:hash>', methods=['GET'])
+@api_auth_required
+def image_original_filename(hash):
+    result = sql.get_value('select app.image_local_filename(%s)', [hash])
+    return jsonify({'status': 'ok', 'filename': result})
+
+@app.route('/api/image/getattr/<string:hash>', methods=['GET'])
+@api_auth_required
+def image_getattr(hash):
+    result = sql.get_row('select * from app.image_getattr(%s)', [hash])
+    return jsonify({'status': 'ok', 'attrs': result})

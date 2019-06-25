@@ -5,7 +5,7 @@ from archive.file_meta import FileMeta, get_file_instance
 
 class FileArchiveMeta(FileMeta):
 
-    def __init__(self, filename):
+    def __init__(self, filename, precompiled_hash=None):
         super(FileArchiveMeta, self).__init__(filename)
         self.filetype = 'archive'
 
