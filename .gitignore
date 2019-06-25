@@ -1,1 +1,3 @@
 *.pyc
+pcp_hash/
+tmp-unarchive/
