@@ -244,7 +244,7 @@ function app.image_list
     hint text
 ) as $$
 begin
-    if afilter = '/' then
+    if afilter = '/By date' then
         return query
         select to_char(date_trunc('year', i.exif_datetime), 'yyyy') as file_name,
                'd' as file_type,
@@ -254,7 +254,7 @@ begin
                count(*)::text as hint
           from archive.image i
           join archive.file f on f.id = i.id
-          where i.exif_datetime is not null
+         where i.exif_datetime is not null
           group by 1, 2
           order by 1;
     elsif afilter = 'year' then
@@ -267,7 +267,7 @@ begin
                count(*)::text as hint
           from archive.image i
           join archive.file f on f.id = i.id
-          where to_char(i.exif_datetime, 'yyyy') = avalue
+         where to_char(i.exif_datetime, 'yyyy') = avalue
           group by 1, 2
           order by 1;
     elsif afilter = 'month' then
@@ -280,7 +280,7 @@ begin
                count(*)::text as hint
           from archive.image i
           join archive.file f on f.id = i.id
-          where to_char(i.exif_datetime, 'yyyy-mm') = avalue
+         where to_char(i.exif_datetime, 'yyyy-mm') = avalue
           group by 1, 2
           order by 1;
     elsif afilter = 'day' then
@@ -293,7 +293,49 @@ begin
                ''::text as hint
           from archive.image i
           join archive.file f on f.id = i.id
-          where to_char(i.exif_datetime, 'yyyy-mm-dd') = avalue
+         where to_char(i.exif_datetime, 'yyyy-mm-dd') = avalue
+          order by 1;
+    elsif afilter = '/By maker' then
+        return query
+        select e.value as file_name,
+               'd' as file_type,
+               max(f.ctime) as ctime,
+               max(f.mtime) as mtime,
+               sum(f.size)::bigint as size,
+               count(*)::text as hint
+          from archive.image i
+          join archive.exif e on e.file_id = i.id
+          join archive.file f on f.id = i.id
+         where e.tag = 'Make'
+          group by 1, 2
+          order by 1;
+    elsif afilter = 'Make' then
+        return query
+        select e2.value as file_name,
+               'd' as file_type,
+               max(f.ctime) as ctime,
+               max(f.mtime) as mtime,
+               sum(f.size)::bigint as size,
+               count(*)::text as hint
+          from archive.image i
+          join archive.exif e on e.file_id = i.id and e.tag = 'Make'
+          join archive.file f on f.id = i.id
+          join archive.exif e2 on e2.file_id = i.id and e2.tag = 'Model'
+         where e.value = avalue
+          group by 1, 2
+          order by 1;
+    elsif afilter = 'Model' then
+        return query
+        select format('%s.%s', f.md5, i.format) as file_name,
+               'f'::text as file_type,
+               f.ctime as ctime,
+               f.mtime as mtime,
+               f.size as size,
+               ''::text as hint
+          from archive.image i
+          join archive.file f on f.id = i.id
+          join archive.exif e on e.file_id = i.id and e.tag = 'Model'
+         where e.value = avalue
           order by 1;
     end if;
 end;
@@ -331,3 +373,16 @@ function app.image_getattr(ahash text) returns table
 $$ language sql security definer immutable;
 
 alter function app.image_getattr(text) owner to archive;
+
+
+        select format('%s.%s', f.md5, i.format) as file_name,
+               'f'::text as file_type,
+               f.ctime as ctime,
+               f.mtime as mtime,
+               f.size as size,
+               ''::text as hint
+          from archive.image i
+          join archive.file f on f.id = i.id
+          join archive.exif e on e.file_id = i.id and e.tag = 'Model'
+         where e.value = '"iPhone 4S"'
+          order by 1;

@@ -65,7 +65,8 @@ class Passthrough(Operations):
     def getattr(self, path, fh=None):
         print('getattr(%s, %s)' % (path, fh,))
 
-        if re.match('/\d{4}/\d{4}-\d{2}/\d{4}-\d{2}-\d{2}/[0-9a-f]{32}\..+$', path):
+        if re.match('/By date/\d{4}/\d{4}-\d{2}/\d{4}-\d{2}-\d{2}/[0-9a-f]{32}\..+$', path) or \
+           re.match('/By maker/.*/[0-9a-f]{32}\..+$', path):
             st_mode = 33204
             attrs = self.api_get_attr((path.split('/')[-1]).split('.')[0])
         else:
@@ -87,13 +88,21 @@ class Passthrough(Operations):
         dirents = ['.', '..']
 
         if path == '/':
-            dirents.extend([i['file_name'] for i in self.api_request('/', '')])
-        elif re.match('/\d{4}$', path):
-            dirents.extend([i['file_name'] for i in self.api_request('year', path[1:])])
-        elif re.match('/\d{4}/\d{4}-\d{2}$', path):
+            dirents.extend(['By maker', 'By date'])
+        elif path == '/By date':
+            dirents.extend([i['file_name'] for i in self.api_request('/By date', '*')])
+        elif re.match('/By date/\d{4}$', path):
+            dirents.extend([i['file_name'] for i in self.api_request('year', path.split('/')[-1])])
+        elif re.match('/By date/\d{4}/\d{4}-\d{2}$', path):
             dirents.extend([i['file_name'] for i in self.api_request('month', path.split('/')[-1])])
-        elif re.match('/\d{4}/\d{4}-\d{2}/\d{4}-\d{2}-\d{2}$', path):
+        elif re.match('/By date/\d{4}/\d{4}-\d{2}/\d{4}-\d{2}-\d{2}$', path):
             dirents.extend([i['file_name'] for i in self.api_request('day', path.split('/')[-1])])
+        elif path == '/By maker':
+            dirents.extend([i['file_name'] for i in self.api_request('/By maker', '*')])
+        elif path.startswith('/By maker') and len(path.split('/')) == 3:
+            dirents.extend([i['file_name'] for i in self.api_request('Make', path.split('/')[-1])])
+        elif path.startswith('/By maker') and len(path.split('/')) == 4:
+            dirents.extend([i['file_name'] for i in self.api_request('Model', path.split('/')[-1])])
         else:
             pass
 
