@@ -33,28 +33,33 @@ class FileArchiveMeta(FileMeta):
 
         return True
 
+    def cleanup(self):
+        os.system('rm -rf ./tmp-unarchive/%s' % self.hash)
+
     def get_meta(self):
         meta = super(FileArchiveMeta, self).get_meta()
-        # We need to unpack the archive and process all its files recursively
-        os.system('rm -rf ./tmp-unarchive/%s' % self.hash)
-        os.mkdir('./tmp-unarchive/%s' % self.hash)
-
         try:
-            self.unarchive()
-        except subprocess.CalledProcessError:
-            os.system('rm -rf ./tmp-unarchive/%s' % self.hash)
-            meta[self.hash]['corrupted'] = 'true'
-            return meta
+            # We need to unpack the archive and process all its files recursively
+            self.cleanup()
+            os.mkdir('./tmp-unarchive/%s' % self.hash)
 
-        meta[self.hash]['included_files'] = {}
+            try:
+                self.unarchive()
+            except subprocess.CalledProcessError:
+                self.cleanup()
+                meta[self.hash]['corrupted'] = 'true'
+                return meta
 
-        for root, dir, files in os.walk('./tmp-unarchive/%s' % self.hash):
-            for file in files:
-                filename = os.path.join(root, file)
-                # We don't process symlinks
-                if os.path.islink(filename): continue
-                instance = get_file_instance(filename)
-                meta[self.hash]['included_files'].update(instance.get_meta())
-        # Clean up
-        os.system('rm -rf tmp-unarchive/%s' % self.hash)
+            meta[self.hash]['included_files'] = {}
+
+            for root, dir, files in os.walk('./tmp-unarchive/%s' % self.hash):
+                for file in files:
+                    filename = os.path.join(root, file)
+                    # We don't process symlinks
+                    if os.path.islink(filename): continue
+                    instance = get_file_instance(filename)
+                    meta[self.hash]['included_files'].update(instance.get_meta())
+        finally:
+            self.cleanup()
+
         return meta
