@@ -19,3 +19,8 @@ Methods are:
 2. get
 3. delete
 4. info
+
+# TODO
+
+1. pcp hash calculation for animated GIFs. `convert` produces multiple images for animated GIFs,
+how to calculate pcp hash for them?
