@@ -1,4 +1,4 @@
-# Main statements
+# General provisions
 
 1. File is identified by its md5 hash. Thefore, there are [known examples](https://crypto.stackexchange.com/questions/1434/are-there-two-known-strings-which-have-the-same-md5-hash-value) of md5 hash collision. We have
 to think to switch to `sha256`.
