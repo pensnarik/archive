@@ -20,6 +20,14 @@ HTTP REST API. You can put all in one by using unix pipes:
 
 You can refer to `upload.sh` for an example.
 
+# Environment variables
+
+Variable | Description
+-------- | -----------
+ARCHIVE_SERVICE_URL | URL of REST API HTTP service
+ARCHIVE_SERVICE_TOKEN | Access token to access REST API HTTP service
+ARCHIVE_HOSTNAME | Prefix to all files that are stored on machine where the `./preproc` script is running
+
 # REST API
 
 Files should be added/updated/removed from archive via HTTP REST API.

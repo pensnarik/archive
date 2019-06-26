@@ -14,8 +14,8 @@ EXCLUDE_EXIF = ['MakerNote', 'UserComment']
 
 class FileImageMeta(FileMeta):
 
-    def __init__(self, filename, precompiled_hash=None):
-        super(FileImageMeta, self).__init__(filename)
+    def __init__(self, filename, precompiled_hash=None, parent_file_hash=None):
+        super(FileImageMeta, self).__init__(filename, precompiled_hash, parent_file_hash)
         self.filetype = 'image'
 
     def get_meta(self):
