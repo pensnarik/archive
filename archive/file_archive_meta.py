@@ -26,7 +26,7 @@ class FileArchiveMeta(FileMeta):
             subprocess.run('unzip -qo "%s" -d ./tmp-unarchive/%s/' % (self.filename, self.hash),
                            shell=True, check=True)
         elif extension == 'rar':
-            subprocess.run('unrar -inul e "%s" ./tmp-unarchive/%s/' % (self.filename, self.hash),
+            subprocess.run('unrar -inul -p- e "%s" ./tmp-unarchive/%s/' % (self.filename, self.hash),
                            shell=True, check=True)
         else:
             return False
