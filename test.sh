@@ -8,7 +8,7 @@ fi
 OIFS="$IFS"
 IFS=$'\n'
 
-for file in $(find "$1" -not -wholename "./.git*" -type f); do
+for file in $(find "$1" -not -wholename "*.git/*" -type f); do
 	./upload.sh "$file"
 done
 
