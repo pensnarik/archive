@@ -8,6 +8,18 @@ EXIF Make/Model.
 4. Files in archives are processed recursively. Currently supported archive formats are: gz, xz, zip and rar.
 5. If file has multiple copies all original file names are stored in the database.
 
+# Archiving process
+
+The file archiving process comprises two phases. The first phase is md5 hash calculation and generation
+JSON metadata with `preproc.py` tool. The second phase is to send this data to archive service using
+HTTP REST API. You can put all in one by using unix pipes:
+
+```bash
+./preproc.py "$1" | curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $ARCHIVE_SERVICE_TOKEN" "http://127.0.0.1:5000/api/add" -d @-
+```
+
+You can refer to `upload.sh` for an example.
+
 # REST API
 
 Files should be added/updated/removed from archive via HTTP REST API.
