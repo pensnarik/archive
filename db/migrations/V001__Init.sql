@@ -89,11 +89,49 @@ create unique index on archive.users using btree (token);
 
 insert into archive.users (email, token) values ('dev@dev', md5('dev'));
 
+create sequence archive.backup_id_seq start with 10000000;
+
+create table archive.backup
+(
+    id              bigint primary key default nextval('archive.backup_id_seq'),
+    file_id         bigint not null references archive.file(id),
+    service         text not null,
+    uid             text not null
+);
+
+create unique index on archive.backup (service, uid);
+
 reset role;
 
 create schema app;
 alter schema app owner to app;
 grant usage on schema app to archive;
+
+create or replace
+function app.file_backup
+(
+    ahash text,
+    aservice text,
+    auid text
+) returns bigint as $$
+declare
+    vid bigint; vfile_id bigint;
+begin
+    vfile_id := app.file_id_get(ahash);
+
+    if vfile_id is null then
+        raise exception 'Couldn''t find file with hash %', ahash;
+    end if;
+
+    insert into archive.backup(file_id, service, uid)
+    values (vfile_id, aservice, auid)
+    returning id into vid;
+
+    return vid;
+end;
+$$ language plpgsql security definer;
+
+alter function app.file_backup(text, text, text) owner to archive;
 
 create or replace
 function app.file_add

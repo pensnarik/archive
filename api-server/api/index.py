@@ -78,3 +78,11 @@ def image_original_filename(hash):
 def image_getattr(hash):
     result = sql.get_row('select * from app.image_getattr(%s)', [hash])
     return jsonify({'status': 'ok', 'attrs': result})
+
+@app.route('/api/backup', methods=['POST'])
+@api_auth_required
+def backup():
+    payload = request.json
+    result = sql.get_value('select app.file_backup(%s, %s, %s)', [payload['hash'], payload['service'],
+                                                                  payload['uid']])
+    return jsonify({'status': 'ok', 'id': result})
