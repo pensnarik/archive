@@ -5,8 +5,8 @@ from archive.file_meta import FileMeta, get_file_instance
 
 class FileArchiveMeta(FileMeta):
 
-    def __init__(self, filename, precompiled_hash=None, parent_file_hash=None):
-        super(FileArchiveMeta, self).__init__(filename, precompiled_hash, parent_file_hash)
+    def __init__(self, filename, info):
+        super(FileArchiveMeta, self).__init__(filename, info)
         self.filetype = 'archive'
 
     def unarchive(self):
@@ -57,7 +57,7 @@ class FileArchiveMeta(FileMeta):
                     filename = os.path.join(root, file)
                     # We don't process symlinks
                     if os.path.islink(filename): continue
-                    instance = get_file_instance(filename, precompiled_hash=None, parent_file_hash=self.hash)
+                    instance = get_file_instance(filename, {'parent_file_hash': self.hash})
                     meta[self.hash]['included_files'].update(instance.get_meta())
         finally:
             self.cleanup()

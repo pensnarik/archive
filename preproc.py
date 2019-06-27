@@ -33,7 +33,7 @@ class App():
                 sys.stderr.write('File is already in archive, skipping\n')
                 return {hash: {'exists': True}}
 
-        instance = get_file_instance(full_path)
+        instance = get_file_instance(full_path, {})
         return instance.get_meta()
 
     def run(self):
