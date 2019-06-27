@@ -5,6 +5,7 @@ import sys
 import hashlib
 import json
 import requests
+import subprocess
 
 from archive.file_meta import get_file_instance, get_file_size, get_file_hash
 
@@ -24,8 +25,25 @@ class App():
                 raise Exception('%s environmemt variable is not set, please refer the ' \
                                 'documentation' % env)
 
+    def download_remote_file(self, url):
+        """
+        Downloads remote file into local directory
+        """
+        filename = './tmp-unarchive/%s.%s' % (hashlib.md5(url.encode('utf-8')).hexdigest(), url.split('.')[-1])
+        subprocess.run('curl -o "%s" "%s"' % (filename, url), shell=True, check=True)
+        if os.path.exists(filename):
+            return filename
+        else:
+            raise Exception('Could not download file "%s"' % url)
+
     def process_file(self, filename):
-        full_path = os.path.abspath(filename)
+        info = {}
+        if filename.startswith('http://') or filename.startswith('https://'):
+            full_path = self.download_remote_file(filename)
+            # Save original file URL
+            info['url'] = filename
+        else:
+            full_path = os.path.abspath(filename)
 
         if get_file_size(full_path) > FILE_SIZE_LIMIT:
             hash = get_file_hash(full_path)
@@ -33,7 +51,7 @@ class App():
                 sys.stderr.write('File is already in archive, skipping\n')
                 return {hash: {'exists': True}}
 
-        instance = get_file_instance(full_path, {})
+        instance = get_file_instance(full_path, info)
         return instance.get_meta()
 
     def run(self):

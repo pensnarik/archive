@@ -47,6 +47,9 @@ class FileMeta():
             self.hash = get_file_hash(self.filename)
 
     def get_filename(self):
+        if 'url' in self.info:
+            return self.info['url']
+
         if self.parent_file_hash is None:
             return 'file://%s:%s' % (os.environ['ARCHIVE_HOSTNAME'], self.filename)
         else:
