@@ -3,6 +3,7 @@ Main application package
 
 """
 import json
+import time
 import psycopg2
 from flask import Flask, g
 
