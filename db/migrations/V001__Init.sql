@@ -6,7 +6,6 @@ set role archive;
 set search_path to archive, public;
 
 create type archive.t_file_type as enum('archive', 'image', 'text', 'audio', 'video');
-create type archive.t_image_format as enum('jpeg', 'png', 'tiff', 'gif', 'bmp');
 
 create sequence archive.file_id_seq start with 10000000;
 
@@ -55,7 +54,7 @@ create table archive.image
     pcp_hash            char(16),
     coords              point,
     exif_datetime       timestamp,
-    format              archive.t_image_format not null,
+    format              text not null,
     mode                varchar(255) not null
 );
 
@@ -224,7 +223,7 @@ function app.image_add
     apcp_hash char(16),
     acoords point,
     aexif_datetime timestamp,
-    aformat archive.t_image_format,
+    aformat text,
     amode varchar,
     aexif json
 ) returns bigint as $$
@@ -249,7 +248,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
-alter function app.image_add(bigint, integer, integer, char(16), point, timestamp, archive.t_image_format, varchar, json) owner to archive;
+alter function app.image_add(bigint, integer, integer, char(16), point, timestamp, text, varchar, json) owner to archive;
 
 create function app.check_token
 (
