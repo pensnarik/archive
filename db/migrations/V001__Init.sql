@@ -95,7 +95,8 @@ create table archive.backup
     id              bigint primary key default nextval('archive.backup_id_seq'),
     file_id         bigint not null references archive.file(id),
     service         text not null,
-    uid             text not null
+    uid             text not null,
+    dt_backup       timestamptz not null defatul current_timestamp
 );
 
 create unique index on archive.backup (service, uid);
