@@ -28,7 +28,6 @@ class ArchiveBackupGoogle(ArchiveBackup):
         return {'Authorization': 'Bearer %s' % self.credentials['access_token']}
 
     def refresh_token(self):
-        print("Refreshing token")
         payload = {'client_id': self.credentials['client_id'],
                    'client_secret': self.credentials['client_secret'],
                    'refresh_token': os.environ['ARCHIVE_GDRIVE_REFRESH_TOKEN'],
@@ -72,6 +71,9 @@ class ArchiveBackupGoogle(ArchiveBackup):
                     try_googleapi_request = True
                 else:
                     raise Exception('Could not update API token')
+            elif r.status_code == 403:
+                os.remove(encrypted_filename)
+                raise Exception(r.json()['error']['message'])
             else:
                 try_googleapi_request = False
 
