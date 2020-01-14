@@ -96,7 +96,7 @@ create table archive.backup
     file_id         bigint not null references archive.file(id),
     service         text not null,
     uid             text not null,
-    dt_backup       timestamptz not null defatul current_timestamp
+    dt_backup       timestamptz not null default current_timestamp
 );
 
 create unique index on archive.backup (service, uid);
