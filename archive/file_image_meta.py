@@ -12,6 +12,16 @@ from archive.gps_tools import get_lat_lon, get_googlemaps_link
 
 EXCLUDE_EXIF = ['MakerNote', 'UserComment']
 
+# Size of image perceptive hash, in bits, required to meet 2 conditions:
+# 1) Should be power of 2
+# 2) log(PCP_HASH_SIZE, 2) should be interger
+# Possible values are: 2, 4, 16, 64, 256, 1024, 4096, 16384, ...
+PCP_HASH_SIZE = 64
+
+PCP_THUMB_SIZE = int(math.sqrt(PCP_HASH_SIZE))
+PCP_BITS_PER_ROW = PCP_THUMB_SIZE
+
+
 class FileImageMeta(FileMeta):
 
     def __init__(self, filename, info):
@@ -24,13 +34,13 @@ class FileImageMeta(FileMeta):
         return meta
 
     def get_pcp_hash(self):
-        command = 'convert -depth 8 -strip -type Grayscale -geometry 8x8! "%s" "%s/%s.png"' % \
-                  (self.filename, 'pcp_hash', self.hash)
+        command = 'convert -depth 8 -strip -type Grayscale -geometry %sx%s! "%s" "%s/%s.png"' % \
+                  (PCP_THUMB_SIZE, PCP_THUMB_SIZE, self.filename, 'pcp_hash', self.hash)
 
         try:
             subprocess.run(command, shell=True, check=True)
         except subprocess.CalledProcessError:
-            return '0000000000000000'
+            return None
 
         im = Image.open('pcp_hash/%s.png' % self.hash)
         width, height = im.size
@@ -53,10 +63,14 @@ class FileImageMeta(FileMeta):
             bits = 0
             for x in range(0, height):
                 bit = int(im.getpixel((x, y)) > average)
-                bits += bit * math.pow(2, 7 - x)
+                bits += bit * math.pow(2, PCP_BITS_PER_ROW - 1 - x)
+
             hash.append(int(bits))
 
-        hash_as_str = ''.join(['%.2x' % i for i in hash])
+        # We need (PCP_BITS_PER_ROW / 8 * 2) symbols to store a row as a hex string
+        # It's (PCP_BITS_PER_ROW / 8) bytes, and 2 characters per byte ('00' - 'ff')
+        format_str = '%.{}x'.format(int(PCP_BITS_PER_ROW / 8 * 2))
+        hash_as_str = ''.join([format_str % i for i in hash])
 
         os.system('rm pcp_hash/%s.png' % self.hash)
 
