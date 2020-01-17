@@ -34,6 +34,9 @@ class FileImageMeta(FileMeta):
         return meta
 
     def get_pcp_hash(self):
+        # TODO
+        # Consider referring to this for more optimal algorithm
+        # http://www.ruanyifeng.com/blog/2011/07/imgHash.txt?spm=a2c65.11461447.0.0.1c8c3588zsrYlA&file=imgHash.txt
         command = 'convert -depth 8 -strip -type Grayscale -geometry %sx%s! "%s" "%s/%s.png"' % \
                   (PCP_THUMB_SIZE, PCP_THUMB_SIZE, self.filename, 'pcp_hash', self.hash)
 
